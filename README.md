@@ -23,6 +23,16 @@ your_exe.linkLibrary(boringssl_dependency.artifact("ssl"));
 your_exe.linkLibrary(boringssl_dependency.artifact("crypto"));
 ```
 
+## System Dependencies
+
+### Generic
+
+- Git
+
+### Windows
+
+- Nasm
+
 ## Notes
 
 ### Windows support:
