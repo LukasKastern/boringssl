@@ -1,4 +1,6 @@
 const std = @import("std");
+const native_os = builtin.os.tag;
+const builtin = @import("builtin");
 
 const TargetCommitSHA = "797ba56186260ef66d186deb200bd324ec1516c8";
 
@@ -338,7 +340,7 @@ fn runAllowFail(
     out_code: *u8,
     stderr_behavior: std.process.Child.StdIo,
     cwd: ?std.fs.Dir,
-) std.Build.RunError![]u8 {
+) ![]u8 {
     std.debug.assert(argv.len != 0);
 
     if (!std.process.can_spawn)
@@ -353,8 +355,16 @@ fn runAllowFail(
     child.stderr_behavior = stderr_behavior;
     child.env_map = &b.graph.env_map;
 
-    if (cwd) |dir| {
-        child.cwd = dir.realpath("", &path_name_buffer) catch return error.OutOfMemory;
+    child.cwd_dir = cwd;
+
+    if (native_os == .windows) {
+        // On windows cwd_dir is not supported
+        if (cwd) |dir| {
+            child.cwd = dir.realpath("", &path_name_buffer) catch |e| {
+                std.log.err("failed to get real path: {s}", .{@errorName(e)});
+                return e;
+            };
+        }
     }
 
     try std.Build.Step.handleVerbose2(b, null, child.env_map, argv);
