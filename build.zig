@@ -279,9 +279,6 @@ pub fn build(b: *std.Build) !void {
         }
 
         b.installArtifact(mod);
-
-        // Add to steps to allow others to reference us
-        try steps.put(module.name, mod);
     }
 }
 
