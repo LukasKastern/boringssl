@@ -122,6 +122,8 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const build_root = b.build_root.handle;
+
     // Clone source code
     // Ideally we would just reference boringssl in the zig.zon
     // But we need to apply patches which doesn't work nicely with the concept of cached dependecies
@@ -134,7 +136,7 @@ pub fn build(b: *std.Build) !void {
     const sources_json = b.path("boringssl/gen/sources.json");
     const sources_path = sources_json.getPath(b);
 
-    const sources_file = try std.fs.cwd().openFile(sources_path, .{});
+    const sources_file = try build_root.openFile(sources_path, .{});
     const source_content = try sources_file.readToEndAlloc(b.allocator, 1024 * 1024 * 1024);
 
     // Parse it
@@ -282,14 +284,19 @@ pub fn build(b: *std.Build) !void {
 
         b.installArtifact(mod);
     }
+
+    // Install headers directory - should only ssl do this or crypto as well?
+    steps.get("ssl").?.installHeadersDirectory(b.path("boringssl/include"), "", .{});
 }
 
 fn cloneBoringSSL(b: *std.Build) !void {
+    const build_root = b.build_root.handle;
+
     // Check if source is cloned
     // We check if the zig-clone-status file matches our target SHA
     // If it doesn't match we do a fresh clone - otherwise we are good
     const is_cloned = blk: {
-        const clone_status_file = std.fs.cwd().openFile("boringssl/zig-clone-status", .{}) catch break :blk false;
+        const clone_status_file = build_root.openFile("boringssl/zig-clone-status", .{}) catch break :blk false;
         defer clone_status_file.close();
 
         const status = clone_status_file.readToEndAlloc(b.allocator, 4096) catch break :blk false;
@@ -301,18 +308,18 @@ fn cloneBoringSSL(b: *std.Build) !void {
     }
 
     // Delete previous tree
-    std.fs.cwd().deleteTree("boringssl") catch |e| {
+    build_root.deleteTree("boringssl") catch |e| {
         std.log.err("failed to delete tree: {s}", .{@errorName(e)});
         return error.FailedToDeleteBoringSSLDir;
     };
 
-    std.fs.cwd().makeDir("boringssl") catch |e| {
+    build_root.makeDir("boringssl") catch |e| {
         std.log.err("failed to create boringssl dir: {s}", .{@errorName(e)});
         return error.FailedToCreateBoringSSLDir;
     };
 
     // Open the just created directory
-    var boringssl_dir = try std.fs.cwd().openDir("boringssl", .{});
+    var boringssl_dir = try build_root.openDir("boringssl", .{});
     defer boringssl_dir.close();
 
     // We only want to clone the target commit - so we initialize the repo first
@@ -322,10 +329,10 @@ fn cloneBoringSSL(b: *std.Build) !void {
     _ = run(b, &.{ "git", "checkout", "FETCH_HEAD" }, boringssl_dir);
 
     // Apply patches
-    const patch_dir = try std.fs.cwd().openDir("patches", .{ .iterate = true });
+    const patch_dir = try build_root.openDir("patches", .{ .iterate = true });
     var iterator = patch_dir.iterate();
     while (try iterator.next()) |patch| {
-        const abs_patch_patch = try b.build_root.handle.realpathAlloc(b.allocator, try std.fmt.allocPrint(b.allocator, "patches/{s}", .{patch.name}));
+        const abs_patch_patch = try build_root.realpathAlloc(b.allocator, try std.fmt.allocPrint(b.allocator, "patches/{s}", .{patch.name}));
         _ = run(b, &.{ "git", "apply", abs_patch_patch }, boringssl_dir);
     }
 
