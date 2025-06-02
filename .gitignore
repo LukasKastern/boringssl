@@ -1,0 +1,3 @@
+boringssl
+zig-out
+.zig-cache

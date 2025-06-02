@@ -1,0 +1,16 @@
+.{
+    .name = .boringssl,
+    .version = "0.20250514.0",
+    .fingerprint = 0x5f0947d235641b12,
+    .dependencies = .{
+        .googletest = .{
+            .url = "https://github.com/lukaskastern/googletest/archive/b026ea2f0e2c900ed88e10de39884167a484081b.tar.gz",
+            .hash = "googletest-1.15.2-AAAAAI0MAABls8Mqi55vY2QzQ1Da9H5AB7l4_Z5x5WMx",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+    },
+}
