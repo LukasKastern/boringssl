@@ -29,6 +29,10 @@ jobs:
         ]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Install NASM
+        uses: ilammy/setup-nasm@v1
+        if: ${{ matrix.target == 'x86_64-windows' || (matrix.target == 'native' && matrix.os == 'windows-latest') }}
+
       - uses: actions/checkout@v2
         with:
           submodules: recursive

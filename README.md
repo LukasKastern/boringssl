@@ -19,8 +19,20 @@ const boringssl_dependency = b.dependency("boringssl", .{
     .target = target,
     .optimize = optimize,
 });
+your_exe.linkLibrary(boringssl_dependency.artifact("bcm"));
 your_exe.linkLibrary(boringssl_dependency.artifact("ssl"));
 your_exe.linkLibrary(boringssl_dependency.artifact("crypto"));
+```
+
+And use the library like this:
+```zig
+const ssl = @cImport({
+    @cInclude("openssl/ssl.h");
+});
+
+const ctx = ssl.EVP_CIPHER_CTX_new();
+...
+...
 ```
 
 ## System Dependencies
