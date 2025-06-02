@@ -176,7 +176,7 @@ pub fn build(b: *std.Build) !void {
                 "crypto",
                 "bcm",
             },
-            .system_dependencies = if (target.result.os.tag == .windows) &.{ "Ws2_32", "DbgHelp" } else &.{},
+            .system_dependencies = if (target.result.os.tag == .windows) &.{ "ws2_32", "dbghelp" } else &.{},
         },
         ModuleInfo{
             .name = "crypto",
@@ -211,7 +211,7 @@ pub fn build(b: *std.Build) !void {
                 "test_support",
             },
             .dependencies = &.{ gtest, gmock },
-            .system_dependencies = if (target.result.os.tag == .windows) &.{ "Ws2_32", "DbgHelp" } else &.{},
+            .system_dependencies = if (target.result.os.tag == .windows) &.{ "ws2_32", "dbghelp" } else &.{},
         },
     };
 
