@@ -172,6 +172,7 @@ pub fn build(b: *std.Build) !void {
                 "crypto",
                 "bcm",
             },
+            .system_dependencies = if (target.result.os.tag == .windows) &.{ "Ws2_32", "DbgHelp" } else &.{},
         },
         ModuleInfo{
             .name = "crypto",
