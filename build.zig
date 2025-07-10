@@ -1,6 +1,7 @@
 const std = @import("std");
 const native_os = builtin.os.tag;
 const builtin = @import("builtin");
+const patch = @import("patch");
 
 const TargetCommitSHA = "797ba56186260ef66d186deb200bd324ec1516c8";
 
@@ -54,7 +55,7 @@ fn getNasmFormat(target: std.Target) []const u8 {
     }
 }
 
-fn addSourceFilesFromModule(b: *std.Build, step: *std.Build.Step.Compile, module: *const BoringSSLModule) !void {
+fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *std.Build.Step.Compile, module: *const BoringSSLModule) !void {
     var srcs_c = try std.ArrayList([]const u8).initCapacity(b.allocator, module.srcs.len);
     var srcs_cpp = try std.ArrayList([]const u8).initCapacity(b.allocator, module.srcs.len);
 
@@ -68,14 +69,14 @@ fn addSourceFilesFromModule(b: *std.Build, step: *std.Build.Step.Compile, module
 
     for (srcs_cpp.items) |item| {
         step.addCSourceFile(.{
-            .file = b.path(b.pathJoin(&.{ "boringssl", item })),
+            .file = upsteam.path(b, b.pathJoin(&.{item})),
             .flags = &.{ "-DWIN32_LEAN_AND_MEAN", "-std=c++17", "-DNOMINMAX" },
         });
     }
 
     for (srcs_c.items) |item| {
         step.addCSourceFile(.{
-            .file = b.path(b.pathJoin(&.{ "boringssl", item })),
+            .file = upsteam.path(b, b.pathJoin(&.{item})),
             .flags = &.{ "-DWIN32_LEAN_AND_MEAN", "-DNOMINMAX" },
         });
     }
@@ -84,7 +85,7 @@ fn addSourceFilesFromModule(b: *std.Build, step: *std.Build.Step.Compile, module
     if (module.@"asm") |asms| {
         for (asms) |@"asm"| {
             step.addCSourceFile(.{
-                .file = b.path(b.pathJoin(&.{ "boringssl", @"asm" })),
+                .file = upsteam.path(b, b.pathJoin(&.{@"asm"})),
                 .flags = &.{""},
             });
         }
@@ -93,11 +94,11 @@ fn addSourceFilesFromModule(b: *std.Build, step: *std.Build.Step.Compile, module
     // Add nasm
     if (step.rootModuleTarget().os.tag == .windows) {
         if (module.nasm) |nasms| {
-            const root = b.path("");
+            const root = upsteam.path(b, "");
 
             for (nasms) |file| {
                 std.debug.assert(!std.fs.path.isAbsolute(file));
-                const src_file = b.path(b.pathJoin(&.{ "boringssl", file }));
+                const src_file = upsteam.path(b, file);
                 const file_stem = std.mem.sliceTo(file, '.');
 
                 const nasm = b.addSystemCommand(&.{"nasm"});
@@ -115,7 +116,7 @@ fn addSourceFilesFromModule(b: *std.Build, step: *std.Build.Step.Compile, module
         }
     }
 
-    step.addIncludePath(b.path(b.pathJoin(&.{ "boringssl", "include" })));
+    step.addIncludePath(upsteam.path(b, b.pathJoin(&.{"include"})));
 }
 
 pub fn build(b: *std.Build) !void {
@@ -127,13 +128,35 @@ pub fn build(b: *std.Build) !void {
     // Clone source code
     // Ideally we would just reference boringssl in the zig.zon
     // But we need to apply patches which doesn't work nicely with the concept of cached dependecies
-    cloneBoringSSL(b) catch |e| {
-        std.log.err("failed to clone boringssl source code: {s}", .{@errorName(e)});
-        return error.FailedToCloneBoringSSL;
-    };
+    // cloneBoringSSL(b) catch |e| {
+    // std.log.err("failed to clone boringssl source code: {s}", .{@errorName(e)});
+    // return error.FailedToCloneBoringSSL;
+    // };
+    //
+    const upsteam = b.dependency("boringssl", .{});
+
+    const patch_step = patch.PatchStep.create(b, .{
+        .optimize = .ReleaseSafe,
+        .target = .{
+            .query = .{},
+            .result = builtin.target,
+        },
+        .root_directory = upsteam.path(""),
+        .strip = 1,
+    });
+
+    // Add patches
+    const patch_dir = try build_root.openDir("patches", .{ .iterate = true });
+    var iterator = patch_dir.iterate();
+    while (try iterator.next()) |p| {
+        const patch_path = try std.fmt.allocPrint(b.allocator, "patches/{s}", .{p.name});
+        patch_step.addPatch(b.path(patch_path));
+    }
+
+    const upstream_root = patch_step.getDirectory();
 
     // Grab the sources.json which tells us what to build
-    const sources_json = b.path("boringssl/gen/sources.json");
+    const sources_json = b.path("sources.json");
     const sources_path = sources_json.getPath(b);
 
     const sources_file = try build_root.openFile(sources_path, .{});
@@ -244,6 +267,9 @@ pub fn build(b: *std.Build) !void {
             }
         };
 
+        // Depend on patch
+        mod.step.dependOn(&patch_step.step);
+
         // Add to set
         try steps.put(module.name, mod);
     }
@@ -257,7 +283,7 @@ pub fn build(b: *std.Build) !void {
         mod.linkLibCpp();
 
         // Add the sources from the json module to the zig mod
-        try addSourceFilesFromModule(b, mod, module.module);
+        try addSourceFilesFromModule(b, upstream_root, mod, module.module);
 
         // Link to other boringssl modules
         if (module.module_dependencies) |dependencies| {
@@ -286,60 +312,60 @@ pub fn build(b: *std.Build) !void {
     }
 
     // Install headers directory - should only ssl do this or crypto as well?
-    steps.get("ssl").?.installHeadersDirectory(b.path("boringssl/include"), "", .{});
+    steps.get("ssl").?.installHeadersDirectory(upstream_root.path(b, "include"), "", .{});
 }
 
-fn cloneBoringSSL(b: *std.Build) !void {
-    const build_root = b.build_root.handle;
+// fn cloneBoringSSL(b: *std.Build) !void {
+//     const build_root = b.build_root.handle;
 
-    // Check if source is cloned
-    // We check if the zig-clone-status file matches our target SHA
-    // If it doesn't match we do a fresh clone - otherwise we are good
-    const is_cloned = blk: {
-        const clone_status_file = build_root.openFile("boringssl/zig-clone-status", .{}) catch break :blk false;
-        defer clone_status_file.close();
+//     // Check if source is cloned
+//     // We check if the zig-clone-status file matches our target SHA
+//     // If it doesn't match we do a fresh clone - otherwise we are good
+//     const is_cloned = blk: {
+//         const clone_status_file = build_root.openFile("boringssl/zig-clone-status", .{}) catch break :blk false;
+//         defer clone_status_file.close();
 
-        const status = clone_status_file.readToEndAlloc(b.allocator, 4096) catch break :blk false;
-        break :blk std.mem.eql(u8, status, TargetCommitSHA);
-    };
+//         const status = clone_status_file.readToEndAlloc(b.allocator, 4096) catch break :blk false;
+//         break :blk std.mem.eql(u8, status, TargetCommitSHA);
+//     };
 
-    if (is_cloned) {
-        return;
-    }
+//     if (is_cloned) {
+//         return;
+//     }
 
-    // Delete previous tree
-    build_root.deleteTree("boringssl") catch |e| {
-        std.log.err("failed to delete tree: {s}", .{@errorName(e)});
-        return error.FailedToDeleteBoringSSLDir;
-    };
+//     // Delete previous tree
+//     build_root.deleteTree("boringssl") catch |e| {
+//         std.log.err("failed to delete tree: {s}", .{@errorName(e)});
+//         return error.FailedToDeleteBoringSSLDir;
+//     };
 
-    build_root.makeDir("boringssl") catch |e| {
-        std.log.err("failed to create boringssl dir: {s}", .{@errorName(e)});
-        return error.FailedToCreateBoringSSLDir;
-    };
+//     build_root.makeDir("boringssl") catch |e| {
+//         std.log.err("failed to create boringssl dir: {s}", .{@errorName(e)});
+//         return error.FailedToCreateBoringSSLDir;
+//     };
 
-    // Open the just created directory
-    var boringssl_dir = try build_root.openDir("boringssl", .{});
-    defer boringssl_dir.close();
+//     // Open the just created directory
+//     var boringssl_dir = try build_root.openDir("boringssl", .{});
+//     defer boringssl_dir.close();
 
-    // We only want to clone the target commit - so we initialize the repo first
-    _ = run(b, &.{ "git", "init" }, boringssl_dir);
-    _ = run(b, &.{ "git", "remote", "add", "origin", "https://github.com/google/boringssl.git" }, boringssl_dir);
-    _ = run(b, &.{ "git", "fetch", "--depth", "1", "origin", TargetCommitSHA }, boringssl_dir);
-    _ = run(b, &.{ "git", "checkout", "FETCH_HEAD" }, boringssl_dir);
+//     // We only want to clone the target commit - so we initialize the repo first
+//     _ = run(b, &.{ "git", "init" }, boringssl_dir);
+//     _ = run(b, &.{ "git", "remote", "add", "origin", "https://github.com/google/boringssl.git" }, boringssl_dir);
+//     _ = run(b, &.{ "git", "fetch", "--depth", "1", "origin", TargetCommitSHA }, boringssl_dir);
+//     _ = run(b, &.{ "git", "checkout", "FETCH_HEAD" }, boringssl_dir);
 
-    // Apply patches
-    const patch_dir = try build_root.openDir("patches", .{ .iterate = true });
-    var iterator = patch_dir.iterate();
-    while (try iterator.next()) |patch| {
-        const abs_patch_patch = try build_root.realpathAlloc(b.allocator, try std.fmt.allocPrint(b.allocator, "patches/{s}", .{patch.name}));
-        _ = run(b, &.{ "git", "apply", abs_patch_patch }, boringssl_dir);
-    }
+//     // Apply patches
+//     const patch_dir = try build_root.openDir("patches", .{ .iterate = true });
+//     var iterator = patch_dir.iterate();
+//     while (try iterator.next()) |patch| {
+//         const abs_patch_patch = try build_root.realpathAlloc(b.allocator, try std.fmt.allocPrint(b.allocator, "patches/{s}", .{patch.name}));
+//         _ = run(b, &.{ "git", "apply", abs_patch_patch }, boringssl_dir);
+//     }
 
-    const done = try boringssl_dir.createFile("zig-clone-status", .{});
-    defer done.close();
-    try done.writeAll(TargetCommitSHA);
-}
+//     const done = try boringssl_dir.createFile("zig-clone-status", .{});
+//     defer done.close();
+//     try done.writeAll(TargetCommitSHA);
+// }
 
 fn runAllowFail(
     b: *std.Build,

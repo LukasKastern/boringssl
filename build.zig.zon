@@ -7,6 +7,14 @@
             .url = "https://github.com/lukaskastern/googletest/archive/b026ea2f0e2c900ed88e10de39884167a484081b.tar.gz",
             .hash = "googletest-1.15.2-AAAAAI0MAABls8Mqi55vY2QzQ1Da9H5AB7l4_Z5x5WMx",
         },
+        .boringssl = .{
+            .url = "https://github.com/google/boringssl/archive/5622da92e1e7bacb5d0785ff5650a5a23b143b84.tar.gz",
+            .hash = "N-V-__8AALNPTAg4NYYxg9JBYM-yGB8-T1iza-OvymI1uPJY",
+        },
+        .patch = .{
+            .url = "git+https://github.com/akunaakwei/zig-patch.git#71c6f1b6c766e4fa7876d2623d56c9db296bb322",
+            .hash = "patch-2.6.1-po1jOVxtAADJB8T1dZz_iYSc-j1gKB7-G5_nKgE16Pex",
+        },
     },
     .paths = .{
         "build.zig",

@@ -54,3 +54,11 @@ GNU doesn't seem an official target by boringssl for windows which is why we nee
 
 ### Zig Version
 The target zig version is 0.14.0
+
+
+## Updating upstream boringssl
+We built boringssl by utilizing the [sources.json](https://github.com/google/boringssl/blob/main/gen/sources.json) it provides.
+
+This file is used to generate the build graph. Sadly I haven't found a way to access it directly from the dependency.
+
+Meaning it has to be manually copied into [sources.json](sources.json) in this repository.
