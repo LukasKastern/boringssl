@@ -20,5 +20,7 @@
         "build.zig",
         "build.zig.zon",
         "LICENSE",
+        "patches",
+        "sources.json",
     },
 }
