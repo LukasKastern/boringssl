@@ -145,13 +145,8 @@ pub fn build(b: *std.Build) !void {
         .strip = 1,
     });
 
-    // Add patches
-    const patch_dir = try build_root.openDir("patches", .{ .iterate = true });
-    var iterator = patch_dir.iterate();
-    while (try iterator.next()) |p| {
-        const patch_path = try std.fmt.allocPrint(b.allocator, "patches/{s}", .{p.name});
-        patch_step.addPatch(b.path(patch_path));
-    }
+    // Add patch
+    patch_step.addPatch(b.path("patches/p256_gnuc.patch"));
 
     const upstream_root = patch_step.getDirectory();
 
