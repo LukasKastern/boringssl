@@ -15,6 +15,10 @@
             .url = "git+https://github.com/akunaakwei/zig-patch.git#71c6f1b6c766e4fa7876d2623d56c9db296bb322",
             .hash = "patch-2.6.1-po1jOVxtAADJB8T1dZz_iYSc-j1gKB7-G5_nKgE16Pex",
         },
+        .nasm = .{
+            .url = "git+https://github.com/LukasKastern/nasm.git#0574f45de4d93757f68827fb0793892545d12a08",
+            .hash = "nasm-2.16.3-B_NnpQFKAAAzsoHoM_h6D8AnNcux98__Dwq38FKX7RbM",
+        },
     },
     .paths = .{
         "build.zig",
