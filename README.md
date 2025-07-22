@@ -9,7 +9,7 @@ First, update your `build.zig.zon`:
 ```
 # Initialize a `zig build` project if you haven't already
 zig init
-zig fetch --save git+https://github.com/lukaskastern/boringssl.git#0.20250514.0
+zig fetch --save git+https://github.com/lukaskastern/boringssl.git
 ```
 
 You can then import `boringssl` in your `build.zig` with:
@@ -35,16 +35,6 @@ const ctx = ssl.EVP_CIPHER_CTX_new();
 ...
 ```
 
-## System Dependencies
-
-### Generic
-
-- Git
-
-### Windows
-
-- Nasm
-
 ## Notes
 
 ### Windows support:
@@ -57,7 +47,7 @@ The target zig version is 0.14.0
 
 
 ## Updating upstream boringssl
-We built boringssl by utilizing the [sources.json](https://github.com/google/boringssl/blob/main/gen/sources.json) it provides.
+We build boringssl by utilizing the [sources.json](https://github.com/google/boringssl/blob/main/gen/sources.json) it provides.
 
 This file is used to generate the build graph. Sadly I haven't found a way to access it directly from the dependency.
 
