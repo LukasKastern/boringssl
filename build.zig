@@ -55,7 +55,7 @@ fn getNasmFormat(target: std.Target) []const u8 {
     }
 }
 
-fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *std.Build.Step.Compile, module: *const BoringSSLModule) !void {
+fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *std.Build.Step.Compile, module: *const BoringSSLModule, nasm: *std.Build.Step.Compile) !void {
     var srcs_c = try std.ArrayList([]const u8).initCapacity(b.allocator, module.srcs.len);
     var srcs_cpp = try std.ArrayList([]const u8).initCapacity(b.allocator, module.srcs.len);
 
@@ -101,15 +101,15 @@ fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *s
                 const src_file = upsteam.path(b, file);
                 const file_stem = std.mem.sliceTo(file, '.');
 
-                const nasm = b.addSystemCommand(&.{"nasm"});
+                const nasm_run = b.addRunArtifact(nasm);
 
                 // Add platform
                 const platform_arg = try std.fmt.allocPrint(b.allocator, "-f {s}", .{getNasmFormat(step.rootModuleTarget())});
-                nasm.addArg(platform_arg);
+                nasm_run.addArg(platform_arg);
 
-                nasm.addPrefixedDirectoryArg("-i", root);
-                const obj = nasm.addPrefixedOutputFileArg("-o", b.fmt("{s}.obj", .{file_stem}));
-                nasm.addFileArg(src_file);
+                nasm_run.addPrefixedDirectoryArg("-i", root);
+                const obj = nasm_run.addPrefixedOutputFileArg("-o", b.fmt("{s}.obj", .{file_stem}));
+                nasm_run.addFileArg(src_file);
 
                 step.addObjectFile(obj);
             }
@@ -238,6 +238,16 @@ pub fn build(b: *std.Build) !void {
         },
     };
 
+    // Grab nasm
+    const nasm_dep = b.dependency("nasm", .{
+        .target = std.Build.ResolvedTarget{
+            .query = .{},
+            .result = builtin.target,
+        },
+        .optimize = .ReleaseSafe,
+    });
+    const nasm = nasm_dep.artifact("nasm");
+
     // Keep track of added modules so others can depend on them
     var steps = std.StringArrayHashMap(*std.Build.Step.Compile).init(b.allocator);
 
@@ -283,7 +293,7 @@ pub fn build(b: *std.Build) !void {
         mod.linkLibCpp();
 
         // Add the sources from the json module to the zig mod
-        try addSourceFilesFromModule(b, upstream_root, mod, module.module);
+        try addSourceFilesFromModule(b, upstream_root, mod, module.module, nasm);
 
         // Link to other boringssl modules
         if (module.module_dependencies) |dependencies| {
