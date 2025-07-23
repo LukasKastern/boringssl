@@ -16,8 +16,8 @@
             .hash = "patch-2.6.1-po1jOVxtAADJB8T1dZz_iYSc-j1gKB7-G5_nKgE16Pex",
         },
         .nasm = .{
-            .url = "git+https://github.com/LukasKastern/nasm.git#0574f45de4d93757f68827fb0793892545d12a08",
-            .hash = "nasm-2.16.3-B_NnpQFKAAAzsoHoM_h6D8AnNcux98__Dwq38FKX7RbM",
+            .url = "git+https://github.com/sno2/nasm.git#31622af89d7e90af49d2e610d7dcdf36f8e23c7a",
+            .hash = "nasm-2.16.3-B_NnpU5KAADHG19LPMfgWVyyYyQLDt8S2x3UFOLQfjiN",
         },
     },
     .paths = .{
