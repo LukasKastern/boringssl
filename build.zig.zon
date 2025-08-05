@@ -13,7 +13,7 @@
         },
         .patch = .{
             .url = "git+https://github.com/akunaakwei/zig-patch.git#3e609dff44f5ddfc388b9498f72274466b8a677b",
-            .hash = "patch-2.6.1-po1jOVxtAADJB8T1dZz_iYSc-j1gKB7-G5_nKgE16Pex",
+            .hash = "patch-2.6.1-po1jOVRtAAAGruHh4xmWulsWNmjhnfZKLvMbtfL1qieU",
         },
         .nasm = .{
             .url = "git+https://github.com/sno2/nasm.git#31622af89d7e90af49d2e610d7dcdf36f8e23c7a",
