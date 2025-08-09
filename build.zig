@@ -3,8 +3,6 @@ const native_os = builtin.os.tag;
 const builtin = @import("builtin");
 const patch = @import("patch");
 
-const TargetCommitSHA = "797ba56186260ef66d186deb200bd324ec1516c8";
-
 const BoringSSLModule = struct {
     srcs: [][]const u8,
     hdrs: ?[][]const u8 = null,
@@ -125,14 +123,6 @@ pub fn build(b: *std.Build) !void {
 
     const build_root = b.build_root.handle;
 
-    // Clone source code
-    // Ideally we would just reference boringssl in the zig.zon
-    // But we need to apply patches which doesn't work nicely with the concept of cached dependecies
-    // cloneBoringSSL(b) catch |e| {
-    // std.log.err("failed to clone boringssl source code: {s}", .{@errorName(e)});
-    // return error.FailedToCloneBoringSSL;
-    // };
-    //
     const upsteam = b.dependency("boringssl", .{});
 
     const patch_step = patch.PatchStep.create(b, .{
@@ -323,141 +313,4 @@ pub fn build(b: *std.Build) !void {
 
     // Install headers directory - should only ssl do this or crypto as well?
     steps.get("ssl").?.installHeadersDirectory(upstream_root.path(b, "include"), "", .{});
-}
-
-// fn cloneBoringSSL(b: *std.Build) !void {
-//     const build_root = b.build_root.handle;
-
-//     // Check if source is cloned
-//     // We check if the zig-clone-status file matches our target SHA
-//     // If it doesn't match we do a fresh clone - otherwise we are good
-//     const is_cloned = blk: {
-//         const clone_status_file = build_root.openFile("boringssl/zig-clone-status", .{}) catch break :blk false;
-//         defer clone_status_file.close();
-
-//         const status = clone_status_file.readToEndAlloc(b.allocator, 4096) catch break :blk false;
-//         break :blk std.mem.eql(u8, status, TargetCommitSHA);
-//     };
-
-//     if (is_cloned) {
-//         return;
-//     }
-
-//     // Delete previous tree
-//     build_root.deleteTree("boringssl") catch |e| {
-//         std.log.err("failed to delete tree: {s}", .{@errorName(e)});
-//         return error.FailedToDeleteBoringSSLDir;
-//     };
-
-//     build_root.makeDir("boringssl") catch |e| {
-//         std.log.err("failed to create boringssl dir: {s}", .{@errorName(e)});
-//         return error.FailedToCreateBoringSSLDir;
-//     };
-
-//     // Open the just created directory
-//     var boringssl_dir = try build_root.openDir("boringssl", .{});
-//     defer boringssl_dir.close();
-
-//     // We only want to clone the target commit - so we initialize the repo first
-//     _ = run(b, &.{ "git", "init" }, boringssl_dir);
-//     _ = run(b, &.{ "git", "remote", "add", "origin", "https://github.com/google/boringssl.git" }, boringssl_dir);
-//     _ = run(b, &.{ "git", "fetch", "--depth", "1", "origin", TargetCommitSHA }, boringssl_dir);
-//     _ = run(b, &.{ "git", "checkout", "FETCH_HEAD" }, boringssl_dir);
-
-//     // Apply patches
-//     const patch_dir = try build_root.openDir("patches", .{ .iterate = true });
-//     var iterator = patch_dir.iterate();
-//     while (try iterator.next()) |patch| {
-//         const abs_patch_patch = try build_root.realpathAlloc(b.allocator, try std.fmt.allocPrint(b.allocator, "patches/{s}", .{patch.name}));
-//         _ = run(b, &.{ "git", "apply", abs_patch_patch }, boringssl_dir);
-//     }
-
-//     const done = try boringssl_dir.createFile("zig-clone-status", .{});
-//     defer done.close();
-//     try done.writeAll(TargetCommitSHA);
-// }
-
-fn runAllowFail(
-    b: *std.Build,
-    argv: []const []const u8,
-    out_code: *u8,
-    stderr_behavior: std.process.Child.StdIo,
-    cwd: ?std.fs.Dir,
-) ![]u8 {
-    std.debug.assert(argv.len != 0);
-
-    if (!std.process.can_spawn)
-        return error.ExecNotSupported;
-
-    var path_name_buffer: [std.fs.max_path_bytes]u8 = undefined;
-
-    const max_output_size = 400 * 1024;
-    var child = std.process.Child.init(argv, b.allocator);
-    child.stdin_behavior = .Ignore;
-    child.stdout_behavior = .Pipe;
-    child.stderr_behavior = stderr_behavior;
-    child.env_map = &b.graph.env_map;
-
-    child.cwd_dir = cwd;
-
-    if (native_os == .windows) {
-        // On windows cwd_dir is not supported
-        if (cwd) |dir| {
-            child.cwd = dir.realpath("", &path_name_buffer) catch |e| {
-                std.log.err("failed to get real path: {s}", .{@errorName(e)});
-                return e;
-            };
-        }
-    }
-
-    try std.Build.Step.handleVerbose2(b, null, child.env_map, argv);
-    try child.spawn();
-
-    const stdout = child.stdout.?.reader().readAllAlloc(b.allocator, max_output_size) catch {
-        return error.ReadFailure;
-    };
-    errdefer b.allocator.free(stdout);
-
-    const term = try child.wait();
-    switch (term) {
-        .Exited => |code| {
-            if (code != 0) {
-                out_code.* = @as(u8, @truncate(code));
-                return error.ExitCodeFailure;
-            }
-            return stdout;
-        },
-        .Signal, .Stopped, .Unknown => |code| {
-            out_code.* = @as(u8, @truncate(code));
-            return error.ProcessTerminated;
-        },
-    }
-}
-
-fn allocPrintCmd(ally: std.mem.Allocator, opt_cwd: ?[]const u8, argv: []const []const u8) error{OutOfMemory}![]u8 {
-    var buf = std.ArrayList(u8).init(ally);
-    if (opt_cwd) |cwd| try buf.writer().print("cd {s} && ", .{cwd});
-    for (argv) |arg| {
-        try buf.writer().print("{s} ", .{arg});
-    }
-    return buf.toOwnedSlice();
-}
-
-// This is a copy of the build's run function with cwd support
-fn run(b: *std.Build, argv: []const []const u8, cwd: ?std.fs.Dir) []u8 {
-    if (!std.process.can_spawn) {
-        std.debug.print("unable to spawn the following command: cannot spawn child process\n{s}\n", .{
-            try allocPrintCmd(b.allocator, null, argv),
-        });
-        std.process.exit(1);
-    }
-
-    var code: u8 = undefined;
-    return runAllowFail(b, argv, &code, .Inherit, cwd) catch |err| {
-        const printed_cmd = allocPrintCmd(b.allocator, null, argv) catch @panic("OOM");
-        std.debug.print("unable to spawn the following command: {s}\n{s}\n", .{
-            @errorName(err), printed_cmd,
-        });
-        std.process.exit(1);
-    };
 }
