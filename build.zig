@@ -18,8 +18,8 @@ const BuildSource = struct {
     bssl: BoringSSLModule,
     crypto: BoringSSLModule,
     crypto_test: BoringSSLModule,
-    // decrepit: BoringSSLModule,
-    // decrepit_test: BoringSSLModule,
+    decrepit: BoringSSLModule,
+    decrepit_test: BoringSSLModule,
     // fuzz: BoringSSLModule,
     // modulewrapper: BoringSSLModule,
     // pki: BoringSSLModule,
@@ -209,6 +209,27 @@ pub fn build(b: *std.Build) !void {
             .module = &build_source.crypto_test,
             .kind = .lib,
             .dependencies = &.{ gtest, gmock },
+        },
+        ModuleInfo{
+            .name = "decrepit",
+            .module = &build_source.decrepit,
+            .kind = .lib,
+            .module_dependencies = &.{
+                "crypto",
+            },
+        },
+        ModuleInfo{
+            .name = "decrepit_test",
+            .module = &build_source.decrepit_test,
+            .kind = .exe,
+            .module_dependencies = &.{
+                "decrepit",
+                "crypto",
+                "bcm",
+                "test_support",
+            },
+            .dependencies = &.{ gtest, gmock },
+            .system_dependencies = if (target.result.os.tag == .windows) &.{ "ws2_32", "dbghelp" } else &.{},
         },
         ModuleInfo{
             .name = "ssl_test",
