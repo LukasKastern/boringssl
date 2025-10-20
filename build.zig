@@ -146,10 +146,7 @@ pub fn build(b: *std.Build) !void {
     const upstream_root = patch_step.getDirectory();
 
     // Grab the sources.json which tells us what to build
-    const sources_json = b.path("sources.json");
-    const sources_path = sources_json.getPath(b);
-
-    const sources_file = try build_root.openFile(sources_path, .{});
+    const sources_file = try build_root.openFile("sources.json", .{});
     const source_content = try sources_file.readToEndAlloc(b.allocator, 1024 * 1024 * 1024);
 
     // Parse it
@@ -248,16 +245,21 @@ pub fn build(b: *std.Build) !void {
                 .exe => {
                     const mod = b.addExecutable(.{
                         .name = module.name,
-                        .optimize = optimize,
-                        .target = target,
+                        .root_module = b.createModule(.{
+                            .target = target,
+                            .optimize = optimize,
+                        }),
                     });
                     break :blk mod;
                 },
                 .lib => {
-                    const mod = b.addStaticLibrary(.{
+                    const mod = b.addLibrary(.{
                         .name = module.name,
-                        .optimize = optimize,
-                        .target = target,
+                        .root_module = b.createModule(.{
+                            .target = target,
+                            .optimize = optimize,
+                        }),
+                        .linkage = .static,
                     });
                     break :blk mod;
                 },

@@ -3,21 +3,21 @@
     .version = "0.20250514.0",
     .fingerprint = 0x5f0947d235641b12,
     .dependencies = .{
-        .googletest = .{
-            .url = "https://github.com/lukaskastern/googletest/archive/b026ea2f0e2c900ed88e10de39884167a484081b.tar.gz",
-            .hash = "googletest-1.15.2-AAAAAI0MAABls8Mqi55vY2QzQ1Da9H5AB7l4_Z5x5WMx",
-        },
         .boringssl = .{
             .url = "https://github.com/google/boringssl/archive/5622da92e1e7bacb5d0785ff5650a5a23b143b84.tar.gz",
             .hash = "N-V-__8AALNPTAg4NYYxg9JBYM-yGB8-T1iza-OvymI1uPJY",
         },
-        .patch = .{
-            .url = "git+https://github.com/akunaakwei/zig-patch.git#3e609dff44f5ddfc388b9498f72274466b8a677b",
-            .hash = "patch-2.6.1-po1jOVRtAAAGruHh4xmWulsWNmjhnfZKLvMbtfL1qieU",
-        },
         .nasm = .{
             .url = "git+https://github.com/sno2/nasm.git#31622af89d7e90af49d2e610d7dcdf36f8e23c7a",
             .hash = "nasm-2.16.3-B_NnpU5KAADHG19LPMfgWVyyYyQLDt8S2x3UFOLQfjiN",
+        },
+        .patch = .{
+            .url = "git+https://github.com/akunaakwei/zig-patch.git#799ade2cd8954a38aba3d730de1a69891aa68234",
+            .hash = "patch-2.6.1-po1jORRvAAD4_gRpqMKvC00UPblvIpkxvnJdDpG4-DMY",
+        },
+        .googletest = .{
+            .url = "git+https://github.com/Ramblurr/googletest.git#a5039e675b047e953f6fa48459f060e7e2adef6d",
+            .hash = "googletest-1.17.0-yQyPFlqHCADfx6H5sGRUivaKCeepAeqfOv8t5K5Ilu7W",
         },
     },
     .paths = .{
