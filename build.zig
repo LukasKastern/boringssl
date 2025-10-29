@@ -18,8 +18,8 @@ const BuildSource = struct {
     bssl: BoringSSLModule,
     crypto: BoringSSLModule,
     crypto_test: BoringSSLModule,
-    // decrepit: BoringSSLModule,
-    // decrepit_test: BoringSSLModule,
+    decrepit: BoringSSLModule,
+    decrepit_test: BoringSSLModule,
     // fuzz: BoringSSLModule,
     // modulewrapper: BoringSSLModule,
     // pki: BoringSSLModule,
@@ -146,10 +146,7 @@ pub fn build(b: *std.Build) !void {
     const upstream_root = patch_step.getDirectory();
 
     // Grab the sources.json which tells us what to build
-    const sources_json = b.path("sources.json");
-    const sources_path = sources_json.getPath(b);
-
-    const sources_file = try build_root.openFile(sources_path, .{});
+    const sources_file = try build_root.openFile("sources.json", .{});
     const source_content = try sources_file.readToEndAlloc(b.allocator, 1024 * 1024 * 1024);
 
     // Parse it
@@ -214,6 +211,27 @@ pub fn build(b: *std.Build) !void {
             .dependencies = &.{ gtest, gmock },
         },
         ModuleInfo{
+            .name = "decrepit",
+            .module = &build_source.decrepit,
+            .kind = .lib,
+            .module_dependencies = &.{
+                "crypto",
+            },
+        },
+        ModuleInfo{
+            .name = "decrepit_test",
+            .module = &build_source.decrepit_test,
+            .kind = .exe,
+            .module_dependencies = &.{
+                "decrepit",
+                "crypto",
+                "bcm",
+                "test_support",
+            },
+            .dependencies = &.{ gtest, gmock },
+            .system_dependencies = if (target.result.os.tag == .windows) &.{ "ws2_32", "dbghelp" } else &.{},
+        },
+        ModuleInfo{
             .name = "ssl_test",
             .module = &build_source.ssl_test,
             .kind = .exe,
@@ -248,16 +266,21 @@ pub fn build(b: *std.Build) !void {
                 .exe => {
                     const mod = b.addExecutable(.{
                         .name = module.name,
-                        .optimize = optimize,
-                        .target = target,
+                        .root_module = b.createModule(.{
+                            .target = target,
+                            .optimize = optimize,
+                        }),
                     });
                     break :blk mod;
                 },
                 .lib => {
-                    const mod = b.addStaticLibrary(.{
+                    const mod = b.addLibrary(.{
                         .name = module.name,
-                        .optimize = optimize,
-                        .target = target,
+                        .root_module = b.createModule(.{
+                            .target = target,
+                            .optimize = optimize,
+                        }),
+                        .linkage = .static,
                     });
                     break :blk mod;
                 },
@@ -279,8 +302,8 @@ pub fn build(b: *std.Build) !void {
         const mod = steps.get(module.name).?;
 
         // Link std
-        mod.linkLibC();
-        mod.linkLibCpp();
+        mod.root_module.link_libc = true;
+        mod.root_module.link_libcpp = true;
 
         // Add the sources from the json module to the zig mod
         try addSourceFilesFromModule(b, upstream_root, mod, module.module, nasm);
