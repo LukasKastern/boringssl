@@ -302,8 +302,8 @@ pub fn build(b: *std.Build) !void {
         const mod = steps.get(module.name).?;
 
         // Link std
-        mod.linkLibC();
-        mod.linkLibCpp();
+        mod.root_module.link_libc = true;
+        mod.root_module.link_libcpp = true;
 
         // Add the sources from the json module to the zig mod
         try addSourceFilesFromModule(b, upstream_root, mod, module.module, nasm);
