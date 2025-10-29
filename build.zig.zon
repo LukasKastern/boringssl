@@ -16,8 +16,8 @@
             .hash = "patch-2.6.1-po1jORRvAAD4_gRpqMKvC00UPblvIpkxvnJdDpG4-DMY",
         },
         .googletest = .{
-            .url = "git+https://github.com/Ramblurr/googletest.git#a5039e675b047e953f6fa48459f060e7e2adef6d",
-            .hash = "googletest-1.17.0-yQyPFlqHCADfx6H5sGRUivaKCeepAeqfOv8t5K5Ilu7W",
+            .url = "git+https://github.com/LukasKastern/googletest.git?ref=boringssl#84916a2eefd59e970ad79c8f067c678d8a72a8fb",
+            .hash = "googletest-1.15.2-WJyzm3oNAAB198ZoHl_qz-Dwizz6U9JGkjGyofBVZnDj",
         },
     },
     .paths = .{
