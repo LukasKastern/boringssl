@@ -58,6 +58,10 @@ fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *s
     var srcs_cpp = try std.ArrayList([]const u8).initCapacity(b.allocator, module.srcs.len);
 
     for (module.srcs) |src| {
+        // Skip .inc files - these are include files, not directly compiled sources
+        if (std.mem.endsWith(u8, src, ".inc")) {
+            continue;
+        }
         if (std.mem.endsWith(u8, src, ".c")) {
             srcs_c.appendAssumeCapacity(src);
         } else {
