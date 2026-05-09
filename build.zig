@@ -192,6 +192,11 @@ pub fn build(b: *std.Build) !void {
             .system_dependencies = if (target.result.os.tag == .windows) &.{ "ws2_32", "dbghelp" } else &.{},
         },
         ModuleInfo{
+            .name = "decrepit",
+            .module = &build_source.decrepit,
+            .kind = .lib,
+        },
+        ModuleInfo{
             .name = "crypto",
             .module = &build_source.crypto,
             .kind = .lib,
