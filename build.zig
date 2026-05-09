@@ -128,7 +128,7 @@ pub fn build(b: *std.Build) !void {
 
     const build_root = b.build_root.handle;
 
-    const upsteam = b.dependency("boringssl", .{});
+    const upstream = b.dependency("boringssl", .{});
 
     const patch_step = patch.PatchStep.create(b, .{
         .optimize = .ReleaseSafe,
@@ -136,7 +136,7 @@ pub fn build(b: *std.Build) !void {
             .query = .{},
             .result = builtin.target,
         },
-        .root_directory = upsteam.path(""),
+        .root_directory = upstream.path(""),
         .strip = 1,
     });
 
