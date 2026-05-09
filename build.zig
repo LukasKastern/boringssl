@@ -66,14 +66,14 @@ fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *s
     }
 
     for (srcs_cpp.items) |item| {
-        step.addCSourceFile(.{
+        step.root_module.addCSourceFile(.{
             .file = upsteam.path(b, b.pathJoin(&.{item})),
             .flags = &.{ "-DWIN32_LEAN_AND_MEAN", "-std=c++17", "-DNOMINMAX" },
         });
     }
 
     for (srcs_c.items) |item| {
-        step.addCSourceFile(.{
+        step.root_module.addCSourceFile(.{
             .file = upsteam.path(b, b.pathJoin(&.{item})),
             .flags = &.{ "-DWIN32_LEAN_AND_MEAN", "-DNOMINMAX" },
         });
@@ -82,7 +82,7 @@ fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *s
     // Add asm
     if (module.@"asm") |asms| {
         for (asms) |@"asm"| {
-            step.addCSourceFile(.{
+            step.root_module.addCSourceFile(.{
                 .file = upsteam.path(b, b.pathJoin(&.{@"asm"})),
                 .flags = &.{""},
             });
@@ -109,12 +109,12 @@ fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *s
                 const obj = nasm_run.addPrefixedOutputFileArg("-o", b.fmt("{s}.obj", .{file_stem}));
                 nasm_run.addFileArg(src_file);
 
-                step.addObjectFile(obj);
+                step.root_module.addObjectFile(obj);
             }
         }
     }
 
-    step.addIncludePath(upsteam.path(b, b.pathJoin(&.{"include"})));
+    step.root_module.addIncludePath(upsteam.path(b, b.pathJoin(&.{"include"})));
 }
 
 pub fn build(b: *std.Build) !void {
@@ -135,10 +135,12 @@ pub fn build(b: *std.Build) !void {
         .strip = 1,
     });
 
+    const io = b.graph.io;
+
     // Add patches
-    const patch_dir = try build_root.openDir("patches", .{ .iterate = true });
+    const patch_dir = try build_root.openDir(io, "patches", .{ .iterate = true });
     var iterator = patch_dir.iterate();
-    while (try iterator.next()) |p| {
+    while (try iterator.next(io)) |p| {
         const patch_path = try std.fmt.allocPrint(b.allocator, "patches/{s}", .{p.name});
         patch_step.addPatch(b.path(patch_path));
     }
@@ -146,8 +148,9 @@ pub fn build(b: *std.Build) !void {
     const upstream_root = patch_step.getDirectory();
 
     // Grab the sources.json which tells us what to build
-    const sources_file = try build_root.openFile("sources.json", .{});
-    const source_content = try sources_file.readToEndAlloc(b.allocator, 1024 * 1024 * 1024);
+    const sources_file = try build_root.openFile(io, "sources.json", .{});
+    var reader = sources_file.reader(io, &.{});
+    const source_content = try reader.interface.allocRemaining(b.allocator, .unlimited);
 
     // Parse it
     const source = try std.json.parseFromSlice(BuildSource, b.allocator, source_content, .{ .ignore_unknown_fields = true });
@@ -257,7 +260,7 @@ pub fn build(b: *std.Build) !void {
     const nasm = nasm_dep.artifact("nasm");
 
     // Keep track of added modules so others can depend on them
-    var steps = std.StringArrayHashMap(*std.Build.Step.Compile).init(b.allocator);
+    var steps = std.StringHashMap(*std.Build.Step.Compile).init(b.allocator);
 
     // Setup all modules to not require any order when modules depend on other modules
     for (modules) |*module| {
@@ -317,18 +320,18 @@ pub fn build(b: *std.Build) !void {
                     return error.InvalidStepOrder;
                 }
 
-                mod.linkLibrary(step.?);
+                mod.root_module.linkLibrary(step.?);
             }
         }
 
         // Link other libraries needed
         for (module.dependencies) |dep| {
-            mod.linkLibrary(dep);
+            mod.root_module.linkLibrary(dep);
         }
 
         // Link system dependencies
         for (module.system_dependencies) |dep| {
-            mod.linkSystemLibrary(dep);
+            mod.root_module.linkSystemLibrary(dep, .{});
         }
 
         b.installArtifact(mod);

@@ -8,16 +8,16 @@
             .hash = "N-V-__8AALNPTAg4NYYxg9JBYM-yGB8-T1iza-OvymI1uPJY",
         },
         .nasm = .{
-            .url = "git+https://github.com/sno2/nasm.git#31622af89d7e90af49d2e610d7dcdf36f8e23c7a",
-            .hash = "nasm-2.16.3-B_NnpU5KAADHG19LPMfgWVyyYyQLDt8S2x3UFOLQfjiN",
+            .url = "git+https://github.com/allyourcodebase/nasm.git#d7356eadb2d7771542fe74e8fc0668bd78732b59",
+            .hash = "nasm-3.0.1-B_NnpQpTAAA25UxvqONakXtmj-a78PGe3xfgyDFgetb0",
         },
         .patch = .{
-            .url = "git+https://github.com/akunaakwei/zig-patch.git#799ade2cd8954a38aba3d730de1a69891aa68234",
-            .hash = "patch-2.6.1-po1jORRvAAD4_gRpqMKvC00UPblvIpkxvnJdDpG4-DMY",
+            .url = "git+https://github.com/akunaakwei/zig-patch.git#cf883b44599956f63e1944ad6b2f9aedfa49e6ae",
+            .hash = "patch-2.6.1-po1jOcdvAADJrHMB3Un90dGynHFC40q6udBgPIi7KpYi",
         },
         .googletest = .{
-            .url = "git+https://github.com/LukasKastern/googletest.git?ref=boringssl#84916a2eefd59e970ad79c8f067c678d8a72a8fb",
-            .hash = "googletest-1.15.2-WJyzm3oNAAB198ZoHl_qz-Dwizz6U9JGkjGyofBVZnDj",
+            .url = "git+https://github.com/allyourcodebase/googletest#f8acbec3df11c23efebe6aa9efba2d79cc42e727",
+            .hash = "googletest-1.15.2-vLU55pAVAABMlCpsee0jewNDhyAtv_6HbquizuRA0spo",
         },
     },
     .paths = .{
