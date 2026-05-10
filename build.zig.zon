@@ -12,7 +12,7 @@
             .hash = "nasm-3.0.1-B_NnpQpTAAA25UxvqONakXtmj-a78PGe3xfgyDFgetb0",
         },
         .patch = .{
-            .url = "git+https://github.com/lukaskastern/patch.git#56b7eb8708955f4e330456ef3ae816b74a789bfd",
+            .url = "git+https://github.com/akunaakwei/zig-patch.git#a5bf3778de3cae7ee7cdbaa0db3cdc3715b1bcbf",
             .hash = "patch-2.6.1-po1jOY5vAABWkdNnlxzrwMOSWfjOb_RUH8tcJVPK8Mgl",
         },
         .googletest = .{
