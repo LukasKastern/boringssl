@@ -12,8 +12,8 @@
             .hash = "nasm-3.0.1-B_NnpQpTAAA25UxvqONakXtmj-a78PGe3xfgyDFgetb0",
         },
         .patch = .{
-            .url = "git+https://github.com/lukaskastern/patch.git#300478c43fe616a66679e8c71a8dd6009859b973",
-            .hash = "patch-2.6.1-po1jOYlvAAC_clmNabN6gAYkcG5ikj89DZSu0KYC7nHe",
+            .url = "git+https://github.com/lukaskastern/patch.git#56b7eb8708955f4e330456ef3ae816b74a789bfd",
+            .hash = "patch-2.6.1-po1jOY5vAABWkdNnlxzrwMOSWfjOb_RUH8tcJVPK8Mgl",
         },
         .googletest = .{
             .url = "git+https://github.com/lukaskastern/googletest#f8acbec3df11c23efebe6aa9efba2d79cc42e727",
