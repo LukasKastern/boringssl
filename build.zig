@@ -53,7 +53,7 @@ fn getNasmFormat(target: std.Target) []const u8 {
     }
 }
 
-fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *std.Build.Step.Compile, module: *const BoringSSLModule, nasm: *std.Build.Step.Compile) !void {
+fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *std.Build.Step.Compile, module: *const BoringSSLModule, nasm: *std.Build.Step.Compile, pic: ?bool) !void {
     var srcs_c = try std.ArrayList([]const u8).initCapacity(b.allocator, module.srcs.len);
     var srcs_cpp = try std.ArrayList([]const u8).initCapacity(b.allocator, module.srcs.len);
 
@@ -70,17 +70,22 @@ fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *s
         }
     }
 
+    const cflags_cpp_pic = [_][]const u8{ "-DWIN32_LEAN_AND_MEAN", "-std=c++17", "-DNOMINMAX", "-fPIC" };
+    const cflags_cpp_no_pic = [_][]const u8{ "-DWIN32_LEAN_AND_MEAN", "-std=c++17", "-DNOMINMAX" };
+    const cflags_c_pic = [_][]const u8{ "-DWIN32_LEAN_AND_MEAN", "-DNOMINMAX", "-fPIC" };
+    const cflags_c_no_pic = [_][]const u8{ "-DWIN32_LEAN_AND_MEAN", "-DNOMINMAX" };
+
     for (srcs_cpp.items) |item| {
         step.root_module.addCSourceFile(.{
             .file = upsteam.path(b, b.pathJoin(&.{item})),
-            .flags = &.{ "-DWIN32_LEAN_AND_MEAN", "-std=c++17", "-DNOMINMAX" },
+            .flags = if (pic orelse false) &cflags_cpp_pic else &cflags_cpp_no_pic,
         });
     }
 
     for (srcs_c.items) |item| {
         step.root_module.addCSourceFile(.{
             .file = upsteam.path(b, b.pathJoin(&.{item})),
-            .flags = &.{ "-DWIN32_LEAN_AND_MEAN", "-DNOMINMAX" },
+            .flags = if (pic orelse false) &cflags_c_pic else &cflags_c_no_pic,
         });
     }
 
@@ -125,6 +130,7 @@ fn addSourceFilesFromModule(b: *std.Build, upsteam: std.Build.LazyPath, step: *s
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const pic = b.option(bool, "pie", "Produce Position Independent Code");
 
     const build_root = b.build_root.handle;
 
@@ -282,6 +288,7 @@ pub fn build(b: *std.Build) !void {
                         .root_module = b.createModule(.{
                             .target = target,
                             .optimize = optimize,
+                            .pic = pic,
                         }),
                     });
                     break :blk mod;
@@ -292,6 +299,7 @@ pub fn build(b: *std.Build) !void {
                         .root_module = b.createModule(.{
                             .target = target,
                             .optimize = optimize,
+                            .pic = pic,
                         }),
                         .linkage = .static,
                     });
@@ -319,7 +327,7 @@ pub fn build(b: *std.Build) !void {
         mod.root_module.link_libcpp = true;
 
         // Add the sources from the json module to the zig mod
-        try addSourceFilesFromModule(b, upstream_root, mod, module.module, nasm);
+        try addSourceFilesFromModule(b, upstream_root, mod, module.module, nasm, pic);
 
         // Link to other boringssl modules
         if (module.module_dependencies) |dependencies| {
