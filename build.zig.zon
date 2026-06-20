@@ -16,8 +16,8 @@
             .hash = "patch-2.6.1-po1jOY5vAABWkdNnlxzrwMOSWfjOb_RUH8tcJVPK8Mgl",
         },
         .googletest = .{
-            .url = "git+https://github.com/lukaskastern/googletest#f8acbec3df11c23efebe6aa9efba2d79cc42e727",
-            .hash = "googletest-1.15.2-vLU55pAVAABMlCpsee0jewNDhyAtv_6HbquizuRA0spo",
+            .url = "git+https://github.com/allyourcodebase/googletest#1c0070a093a1f4b17f0cddf5c20f3fc63681191b",
+            .hash = "googletest-1.15.2-vLU55pAVAADd_J-vQKNwzEvPw695vo8YgmJmZyUkA0zX",
         },
     },
     .paths = .{
